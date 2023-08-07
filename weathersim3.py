@@ -230,87 +230,87 @@ class World:
                 )
             )
             
-            # Air
-            temperature[:,:,2] += \
-                World.airK * self.AreaX[:,:,2] * dt * (np.roll(self.Temperature, -1, axis=0)[:,:,2] - self.Temperature[:,:,2]) / (self.Radius * np.cos(self.LatitudesNodes) * (self.LongitudesNodes - np.roll(self.LongitudesNodes, -1, axis=0))[:,:,2] * World.airCp * self.Mass[:,:,2]) \
-                + World.airK * np.roll(self.AreaX[:,:,2], 1, axis=0) * dt * (np.roll(self.Temperature, 1, axis=0)[:,:,2] - self.Temperature[:,:,2]) / (self.Radius * np.cos(self.LatitudesNodes) * (np.roll(self.LongitudesNodes, 1, axis=0) - self.LongitudesNodes)[:,:,2] * World.airCp * self.Mass[:,:,2]) \
-                + World.airK * self.AreaY[:,:-1,2] * dt * (np.roll(self.Temperature, -1, axis=1)[:,:,2] - self.Temperature[:,:,2]) / (self.Radius * (np.roll(self.LatitudesNodes, 1, axis=0) - self.LatitudesNodes)[:,:,2] * World.airCp * self.Mass[:,:,2]) \
-                + World.airK * self.AreaY[:,1:,2] * dt * (np.roll(self.Temperature, 1, axis=1)[:,:,2] - self.Temperature[:,:,2]) / (self.Radius * (np.roll(self.LatitudesNodes, 1, axis=0) - self.LatitudesNodes)[:,:,2] * World.airCp * self.Mass[:,:,2]) \
-                + (self.Volume[:,:,1] > 0).astype(int) * ((np.roll(self.ElevationsNodes, 1, axis=2) - self.ElevationsNodes)[:,:,2] * World.airK + (np.roll(self.ElevationsNodes, 1, axis=2) - np.roll(self.ElevationsNodes, 0, axis=2))[:,:,0] * World.waterK) / (np.roll(self.ElevationsNodes, 2, axis=2) - self.ElevationsNodes) * self.AreaZ[:,:,1] * dt * (np.roll(self.Temperature, 1, axis=2)[:,:,2] - self.Temperature[:,:,2]) / (self.Radius * (np.roll(self.ElevationsNodes, 1, axis=2) - self.ElevationsNodes)[:,:,2] * World.airCp * self.Mass[:,:,2]) \
-                + (self.Volume[:,:,1] == 0).astype(int) * ((np.roll(self.ElevationsNodes, 1, axis=2) - self.ElevationsNodes)[:,:,2] * World.airK + (np.roll(self.ElevationsNodes, 2, axis=2) - np.roll(self.ElevationsNodes, 1, axis=2))[:,:,0] * World.airK) / (np.roll(self.ElevationsNodes, 3, axis=2) - self.ElevationsNodes) * self.AreaZ[:,:,2] * dt * (np.roll(self.Temperature, 2, axis=2)[:,:,2] - self.Temperature[:,:,2]) / (self.Radius * (np.roll(self.ElevationsNodes, 2, axis=2) - self.ElevationsNodes)[:,:,2] * World.airCp * self.Mass[:,:,2]) \
-                
-            velocityX[:,:,2] += (
-                # Gradient of pressure
-                0.5 *
-                (
-                    # v_1^2
-                    np.square((
-                        np.roll(self.VelocityX[:,:,2], 1, axis=0) +
-                        self.VelocityX[:,:,1]
-                    ) / 2) + 
-                    np.square((
-                        np.roll(self.VelocityY[:,:-1,2], 1, axis=0) + 
-                        np.roll(self.VelocityY[:,1:,2], 1, axis=0)
-                    ) / 2) - 
-                    # v2^2
-                    np.square((
-                        self.VelocityX[:,:,2] +
-                        np.roll(self.VelocityX[:,:,2], -1, axis=0)
-                    ) / 2) -
-                    np.square((
-                        np.roll(self.VelocityY[:,:-1,2], 0, axis=0) + 
-                        np.roll(self.VelocityY[:,1:,2], 0, axis=0)
-                    ) / 2)
-                )
-                / (
-                    World.waterDensity * 
-                    self.Radius * 
-                    np.cos(self.LatitudesNodes) * 
-                    (
-                        self.LongitudesNodes - 
-                        np.roll(self.LongitudesNodes, -1, axis=0)
-                    )[:,:,2]
-                )
+        # Air
+        temperature[:,:,2] += \
+            World.airK * self.AreaX[:,:,2] * dt * (np.roll(self.Temperature, -1, axis=0)[:,:,2] - self.Temperature[:,:,2]) / (self.Radius * np.cos(self.LatitudesNodes) * (self.LongitudesNodes - np.roll(self.LongitudesNodes, -1, axis=0))[:,:,2] * World.airCp * self.Mass[:,:,2]) \
+            + World.airK * np.roll(self.AreaX[:,:,2], 1, axis=0) * dt * (np.roll(self.Temperature, 1, axis=0)[:,:,2] - self.Temperature[:,:,2]) / (self.Radius * np.cos(self.LatitudesNodes) * (np.roll(self.LongitudesNodes, 1, axis=0) - self.LongitudesNodes)[:,:,2] * World.airCp * self.Mass[:,:,2]) \
+            + World.airK * self.AreaY[:,:-1,2] * dt * (np.roll(self.Temperature, -1, axis=1)[:,:,2] - self.Temperature[:,:,2]) / (self.Radius * (np.roll(self.LatitudesNodes, 1, axis=0) - self.LatitudesNodes)[:,:,2] * World.airCp * self.Mass[:,:,2]) \
+            + World.airK * self.AreaY[:,1:,2] * dt * (np.roll(self.Temperature, 1, axis=1)[:,:,2] - self.Temperature[:,:,2]) / (self.Radius * (np.roll(self.LatitudesNodes, 1, axis=0) - self.LatitudesNodes)[:,:,2] * World.airCp * self.Mass[:,:,2]) \
+            + (self.Volume[:,:,1] > 0).astype(int) * ((np.roll(self.ElevationsNodes, 1, axis=2) - self.ElevationsNodes)[:,:,2] * World.airK + (np.roll(self.ElevationsNodes, 1, axis=2) - np.roll(self.ElevationsNodes, 0, axis=2))[:,:,0] * World.waterK) / (np.roll(self.ElevationsNodes, 2, axis=2) - self.ElevationsNodes) * self.AreaZ[:,:,1] * dt * (np.roll(self.Temperature, 1, axis=2)[:,:,2] - self.Temperature[:,:,2]) / (self.Radius * (np.roll(self.ElevationsNodes, 1, axis=2) - self.ElevationsNodes)[:,:,2] * World.airCp * self.Mass[:,:,2]) \
+            + (self.Volume[:,:,1] == 0).astype(int) * ((np.roll(self.ElevationsNodes, 1, axis=2) - self.ElevationsNodes)[:,:,2] * World.airK + (np.roll(self.ElevationsNodes, 2, axis=2) - np.roll(self.ElevationsNodes, 1, axis=2))[:,:,0] * World.airK) / (np.roll(self.ElevationsNodes, 3, axis=2) - self.ElevationsNodes) * self.AreaZ[:,:,2] * dt * (np.roll(self.Temperature, 2, axis=2)[:,:,2] - self.Temperature[:,:,2]) / (self.Radius * (np.roll(self.ElevationsNodes, 2, axis=2) - self.ElevationsNodes)[:,:,2] * World.airCp * self.Mass[:,:,2]) \
+            
+        velocityX[:,:,2] += (
+            # Gradient of pressure
+            0.5 *
+            (
+                # v_1^2
+                np.square((
+                    np.roll(self.VelocityX[:,:,2], 1, axis=0) +
+                    self.VelocityX[:,:,1]
+                ) / 2) + 
+                np.square((
+                    np.roll(self.VelocityY[:,:-1,2], 1, axis=0) + 
+                    np.roll(self.VelocityY[:,1:,2], 1, axis=0)
+                ) / 2) - 
+                # v2^2
+                np.square((
+                    self.VelocityX[:,:,2] +
+                    np.roll(self.VelocityX[:,:,2], -1, axis=0)
+                ) / 2) -
+                np.square((
+                    np.roll(self.VelocityY[:,:-1,2], 0, axis=0) + 
+                    np.roll(self.VelocityY[:,1:,2], 0, axis=0)
+                ) / 2)
             )
-                
-            velocityY[:,:,2] += (
-                # Filters 
-                # Between poles
-                (self.AltitudesFaces > -1).astype(int) * 
-                (self.AltitudesFaces < 1).astype(int) * 
-                # Gradient of pressure
-                0.5 * 
+            / (
+                World.waterDensity * 
+                self.Radius * 
+                np.cos(self.LatitudesNodes) * 
                 (
-                    # v_1^2
-                    np.square((
-                        np.roll(self.VelocityY[:,:,2], 1, axis=1) +
-                        self.VelocityY[:,:,1]
-                    ) / 2) + 
-                    np.square((
-                        np.pad(np.roll(self.VelocityX[:,:,2], 0, axis=0), ((0,0),(0,1),(0,0))) + 
-                        np.pad(np.roll(self.VelocityX[:,:,2], 0, axis=0), ((0,0),(0,1),(0,0)))
-                    ) / 2) - 
-                    # v_2^2
-                    np.square((
-                        self.VelocityY[:,:,1] +
-                        np.roll(self.VelocityY[:,:,2], -1, axis=1)
-                    ) / 2) -  
-                    np.square((
-                        np.pad(np.roll(self.VelocityX[:,:,2], -1, axis=0), ((0,0),(0,1),(0,0))) + 
-                        np.pad(np.roll(self.VelocityX[:,:,2], -1, axis=0), ((0,0),(0,1),(0,0)))
-                    ) / 2)
-                )
-                / (
-                    World.waterDensity * 
-                    self.Radius * 
-                    np.cos(self.LatitudesNodes) * 
-                    (
-                        np.pad(self.LatitudesNodes, ((0,0),(1,0),(0,0))) - 
-                        np.pad(self.LatitudesNodes, ((0,0),(0,1),(0,0)))
-                    )[:,:,2]
-                )
+                    self.LongitudesNodes - 
+                    np.roll(self.LongitudesNodes, -1, axis=0)
+                )[:,:,2]
             )
-            '''
+        )
+            
+        velocityY[:,:,2] += (
+            # Filters 
+            # Between poles
+            (self.AltitudesFaces > -1).astype(int) * 
+            (self.AltitudesFaces < 1).astype(int) * 
+            # Gradient of pressure
+            0.5 * 
+            (
+                # v_1^2
+                np.square((
+                    np.roll(self.VelocityY[:,:,2], 1, axis=1) +
+                    self.VelocityY[:,:,1]
+                ) / 2) + 
+                np.square((
+                    np.pad(np.roll(self.VelocityX[:,:,2], 0, axis=0), ((0,0),(0,1),(0,0))) + 
+                    np.pad(np.roll(self.VelocityX[:,:,2], 0, axis=0), ((0,0),(0,1),(0,0)))
+                ) / 2) - 
+                # v_2^2
+                np.square((
+                    self.VelocityY[:,:,1] +
+                    np.roll(self.VelocityY[:,:,2], -1, axis=1)
+                ) / 2) -  
+                np.square((
+                    np.pad(np.roll(self.VelocityX[:,:,2], -1, axis=0), ((0,0),(0,1),(0,0))) + 
+                    np.pad(np.roll(self.VelocityX[:,:,2], -1, axis=0), ((0,0),(0,1),(0,0)))
+                ) / 2)
+            )
+            / (
+                World.waterDensity * 
+                self.Radius * 
+                np.cos(self.LatitudesNodes) * 
+                (
+                    np.pad(self.LatitudesNodes, ((0,0),(1,0),(0,0))) - 
+                    np.pad(self.LatitudesNodes, ((0,0),(0,1),(0,0)))
+                )[:,:,2]
+            )
+        )
+        '''
         dv/dt = grad(P) dA
         m/s^2 = kg*m/s^2*m^2/m
         
