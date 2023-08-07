@@ -97,26 +97,72 @@ class World:
         self.ElevationsNodes[:,:,1] = (elevation + np.maximum(0, elevation)) / 2
         self.ElevationsNodes[:,:,2] = (np.maximum(0, elevation) + self.Depth) / 2
         
-        self.AzimuthsFaces, _, _ = np.meshgrid(self.LongitudesFaces, self.LatitudesNodes, [-self.Depth, 0, self.Depth], indexing='ij')
-        _, self.AltitudesFaces, _ = np.meshgrid(self.LongitudesNodes, self.LatitudesFaces, [-self.Depth, 0, self.Depth], indexing='ij')
-        _, _, self.ElevationsFaces = np.meshgrid(self.LongitudesNodes, self.LatitudesNodes, [-self.Depth, 0, 0, self.Depth], indexing='ij')
+        self.AzimuthsFaces, _, _ = np.meshgrid(
+            self.LongitudesFaces, 
+            self.LatitudesNodes, 
+            [-self.Depth, 0, self.Depth], 
+            indexing='ij'
+        )
+        _, self.AltitudesFaces, _ = np.meshgrid(
+            self.LongitudesNodes, 
+            self.LatitudesFaces, 
+            [-self.Depth, 0, self.Depth],
+            indexing='ij'
+        )
+        _, _, self.ElevationsFaces = np.meshgrid(
+            self.LongitudesNodes, 
+            self.LatitudesNodes, 
+            [-self.Depth, 0, 0, self.Depth], 
+            indexing='ij'
+        )
         self.ElevationsFaces[:,:,1] = elevation
         self.ElevationsFaces[:,:,2] = np.maximum(0, elevation)
         self.ElevationsXFaces = (self.ElevationsFaces + np.roll(self.ElevationsFaces, -1, axis=0)) / 2
-        self.ElevationsYFaces = np.concatenate([np.repeat(self.ElevationsFaces[:,0:1].mean(axis=0)[np.newaxis], self.SizeX, axis=0), (self.ElevationsFaces[:,1:] + self.ElevationsFaces[:,:-1]) / 2, np.repeat(self.ElevationsFaces[:,-2:-1].mean(axis=0)[np.newaxis], self.SizeX, axis=0)], axis=1)
+        self.ElevationsYFaces = np.concatenate(
+            [
+                np.repeat(self.ElevationsFaces[:,0:1].mean(axis=0)[np.newaxis], self.SizeX, axis=0), 
+                (self.ElevationsFaces[:,1:] + self.ElevationsFaces[:,:-1]) / 2, 
+                np.repeat(self.ElevationsFaces[:,-2:-1].mean(axis=0)[np.newaxis], self.SizeX, axis=0)
+            ], 
+            axis=1
+        )
         
         self.Temperature = 290 + 40 * np.cos(self.AltitudesNodes)
-        self.Volume = (2 * np.pi / self.SizeX) * (2 / self.SizeY) * (np.power(self.Radius + self.ElevationsFaces[1:], 3) - np.power(self.Radius + self.ElevationsFaces[:-1], 3)) / 3
+        self.Volume = (
+            (2 * np.pi / self.SizeX) * 
+            (2 / self.SizeY) * 
+            (
+                np.power(self.Radius + self.ElevationsFaces[1:], 3) - 
+                np.power(self.Radius + self.ElevationsFaces[:-1], 3)
+            ) / 3
+        )
         self.Mass = np.copy(self.Volume)
         self.Mass[:,:,0] *= World.earthDensity
         self.Mass[:,:,1] *= World.waterDensity
         self.Mass[:,:,2] *= World.airDensity
         with np.errstate(divide='ignore', invalid='ignore'):
-            self.VelocityX = np.nan_to_num(2 * np.pi / (self.LenDay * 3600) / (self.ElevationsXFaces[:,:,1:] - self.ElevationsXFaces[:,:,:-1]) * 0.5 * (np.square(self.Radius + self.ElevationsXFaces[:,:,1:]) - np.square(self.Radius + self.ElevationsXFaces[:,:,:-1])))
+            self.VelocityX = np.nan_to_num(
+                2 * np.pi / (self.LenDay * 3600) / 
+                (
+                    self.ElevationsXFaces[:,:,1:] - 
+                    self.ElevationsXFaces[:,:,:-1]
+                ) * 
+                0.5 * 
+                (
+                    np.square(self.Radius + self.ElevationsXFaces[:,:,1:]) - 
+                    np.square(self.Radius + self.ElevationsXFaces[:,:,:-1])
+                )
+            )
         self.VelocityY = np.zeros((self.SizeX, self.SizeY + 1, self.SizeZ - 1))
         
-        self.AreaX = 0.5 * (np.power(self.Radius + self.ElevationsXFaces[:,:,1:], 2) - np.power(self.Radius + self.ElevationsXFaces[:,:,:-1], 2)) * (2 / self.SizeY)
-        self.AreaY = 0.5 * np.cos(self.AltitudesFaces) * (np.power(self.Radius + self.ElevationsYFaces[:,:,1:], 2) - np.power(self.Radius + self.ElevationsYFaces[:,:,:-1], 2)) * (2 * np.pi / self.SizeX)
+        self.AreaX = 0.5 * (
+            np.power(self.Radius + self.ElevationsXFaces[:,:,1:], 2) - 
+            np.power(self.Radius + self.ElevationsXFaces[:,:,:-1], 2)
+        ) * (2 / self.SizeY)
+        self.AreaY = 0.5 * np.cos(self.AltitudesFaces) * (
+            np.power(self.Radius + self.ElevationsYFaces[:,:,1:], 2) - 
+            np.power(self.Radius + self.ElevationsYFaces[:,:,:-1], 2)
+        ) * (2 * np.pi / self.SizeX)
         self.AreaZ = np.power(self.Radius + self.ElevationsFaces, 2) * (2 / self.SizeY) * (2 * np.pi / self.SizeX)
         
     def Update(self, intensity) -> None:
