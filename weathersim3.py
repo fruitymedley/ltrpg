@@ -208,7 +208,7 @@ class World:
         velocityX = np.copy(self.VelocityX)
         velocityY = np.copy(self.VelocityY)
 
-        # Earth
+        # region Earth
         # Update temperature
         temperature[:, :, 0] += (
             (  # East
@@ -252,12 +252,12 @@ class World:
                 * self.AreaY[:, :-1, 0]
                 * dt
                 * (
-                    np.roll(self.Temperature, -1, axis=1)[:, :, 0]
-                    - self.Temperature[:, :, 0]
+                    np.pad(self.Temperature[:, 1:, 0], ((0, 0), (0, 1)))
+                    - np.pad(self.Temperature[:, 1:, 0], ((0, 0), (0, 1)))
                 )
                 / (
                     self.Radius
-                    * (np.roll(self.AltitudesNodes, 1, axis=0) - self.AltitudesNodes)[
+                    * (np.roll(self.AltitudesNodes, -1, axis=1) - self.AltitudesNodes)[
                         :, :, 0
                     ]
                     * World.earthCp
@@ -269,12 +269,12 @@ class World:
                 * self.AreaY[:, 1:, 0]
                 * dt
                 * (
-                    np.roll(self.Temperature, 1, axis=1)[:, :, 0]
-                    - self.Temperature[:, :, 0]
+                    np.pad(self.Temperature[:, :-1, 0], ((0, 0), (1, 0)))
+                    - np.pad(self.Temperature[:, 1:, 0], ((0, 0), (1, 0)))
                 )
                 / (
                     self.Radius
-                    * (np.roll(self.AltitudesNodes, 1, axis=0) - self.AltitudesNodes)[
+                    * (np.roll(self.AltitudesNodes, 1, axis=1) - self.AltitudesNodes)[
                         :, :, 0
                     ]
                     * World.earthCp
@@ -294,7 +294,7 @@ class World:
                     )[:, :, 0]
                     * World.waterK
                 )
-                / (np.roll(self.ElevationsNodes, 2, axis=2) - self.ElevationsNodes)[
+                / (np.roll(self.ElevationsNodes, 1, axis=2) - self.ElevationsNodes)[
                     :, :, 0
                 ]
                 * self.AreaZ[:, :, 1]
@@ -325,7 +325,7 @@ class World:
                     )[:, :, 0]
                     * World.airK
                 )
-                / (np.roll(self.ElevationsNodes, 3, axis=2) - self.ElevationsNodes)[
+                / (np.roll(self.ElevationsNodes, 2, axis=2) - self.ElevationsNodes)[
                     :, :, 0
                 ]
                 * self.AreaZ[:, :, 2]
@@ -359,8 +359,9 @@ class World:
                 / (self.Mass[:, :, 0] * self.earthCp)
             )
         )
+        # endregion
 
-        # Water
+        # region Water
         with np.errstate(divide="ignore", invalid="ignore"):
             temperature[:, :, 1] += np.nan_to_num(
                 (  # East
@@ -404,13 +405,13 @@ class World:
                     * self.AreaY[:, :-1, 1]
                     * dt
                     * (
-                        np.roll(self.Temperature, -1, axis=1)[:, :, 1]
-                        - self.Temperature[:, :, 1]
+                        np.pad(self.Temperature[:, 1:, 1], ((0, 0), (0, 1)))
+                        - np.pad(self.Temperature[:, 1:, 1], ((0, 0), (0, 1)))
                     )
                     / (
                         self.Radius
                         * (
-                            np.roll(self.AltitudesNodes, 1, axis=0)
+                            np.roll(self.AltitudesNodes, -1, axis=1)
                             - self.AltitudesNodes
                         )[:, :, 1]
                         * World.waterCp
@@ -422,13 +423,13 @@ class World:
                     * self.AreaY[:, 1:, 1]
                     * dt
                     * (
-                        np.roll(self.Temperature, 1, axis=1)[:, :, 1]
-                        - self.Temperature[:, :, 1]
+                        np.pad(self.Temperature[:, :-1, 1], ((0, 0), (1, 0)))
+                        - np.pad(self.Temperature[:, 1:, 1], ((0, 0), (1, 0)))
                     )
                     / (
                         self.Radius
                         * (
-                            np.roll(self.AltitudesNodes, 1, axis=0)
+                            np.roll(self.AltitudesNodes, 1, axis=1)
                             - self.AltitudesNodes
                         )[:, :, 1]
                         * World.waterCp
@@ -448,33 +449,30 @@ class World:
                         )[:, :, 0]
                         * World.waterK
                     )
+                    / (np.roll(self.ElevationsNodes, 1, axis=2) - self.ElevationsNodes)[
+                        :, :, 0
+                    ]
+                    * self.AreaZ[:, :, 1]
+                    * dt
+                    * (
+                        np.roll(self.Temperature, 1, axis=2)[:, :, 0]
+                        - self.Temperature[:, :, 0]
+                    )
                     / (
-                        (
-                            np.roll(self.ElevationsNodes, 2, axis=2)
+                        self.Radius
+                        * (
+                            np.roll(self.ElevationsNodes, 1, axis=2)
                             - self.ElevationsNodes
                         )[:, :, 0]
-                        * self.AreaZ[:, :, 1]
-                        * dt
-                        * (
-                            np.roll(self.Temperature, 1, axis=2)[:, :, 0]
-                            - self.Temperature[:, :, 0]
-                        )
-                        / (
-                            self.Radius
-                            * (
-                                np.roll(self.ElevationsNodes, 1, axis=2)
-                                - self.ElevationsNodes
-                            )[:, :, 0]
-                            * World.waterCp
-                            * self.Mass[:, :, 0]
-                        )
+                        * World.waterCp
+                        * self.Mass[:, :, 0]
                     )
                 )
                 + (  # Air
                     (
                         (
                             np.roll(self.ElevationsNodes, 2, axis=2)
-                            - self.ElevationsNodes
+                            - np.roll(self.ElevationsNodes, 1, axis=2)
                         )[:, :, 0]
                         * World.waterK
                         + (
@@ -483,23 +481,24 @@ class World:
                         )[:, :, 0]
                         * World.airK
                     )
-                    / (np.roll(self.ElevationsNodes, 3, axis=2) - self.ElevationsNodes)[
-                        :, :, 2
-                    ]
+                    / (
+                        np.roll(self.ElevationsNodes, 3, axis=2)
+                        - np.roll(self.ElevationsNodes, 2, axis=2)
+                    )[:, :, 2]
                     * self.AreaZ[:, :, 2]
                     * dt
                     * (
-                        np.roll(self.Temperature, 2, axis=2)[:, :, 0]
-                        - self.Temperature[:, :, 0]
+                        np.roll(self.Temperature, 2, axis=2)[:, :, 1]
+                        - self.Temperature[:, :, 1]
                     )
                     / (
                         self.Radius
                         * (
                             np.roll(self.ElevationsNodes, 2, axis=2)
                             - self.ElevationsNodes
-                        )[:, :, 0]
+                        )[:, :, 1]
                         * World.waterCp
-                        * self.Mass[:, :, 0]
+                        * self.Mass[:, :, 1]
                     )
                 )
                 + (  # Sunlight
@@ -519,6 +518,7 @@ class World:
             # v_x = dP/dx / p
             # dP/dx = (P_x+1 - P_x-1) / dx = 1/2p((v_x-1)^2 - (v_x+1)^2)
             #
+
             velocityX[:, :, 1] += (
                 # Filters
                 # Between water
@@ -637,8 +637,9 @@ class World:
                     )[:, :, 1]
                 )
             )
+        # endregion
 
-        # Air
+        # region Air
         temperature[:, :, 2] += (
             (  # East
                 World.airK
@@ -681,12 +682,12 @@ class World:
                 * self.AreaY[:, :-1, 2]
                 * dt
                 * (
-                    np.roll(self.Temperature, -1, axis=1)[:, :, 2]
-                    - self.Temperature[:, :, 2]
+                    np.pad(self.Temperature[:, 1:, 2], ((0, 0), (0, 1)))
+                    - np.pad(self.Temperature[:, 1:, 2], ((0, 0), (0, 1)))
                 )
                 / (
                     self.Radius
-                    * (np.roll(self.AltitudesNodes, 1, axis=0) - self.AltitudesNodes)[
+                    * (np.roll(self.AltitudesNodes, -1, axis=1) - self.AltitudesNodes)[
                         :, :, 2
                     ]
                     * World.airCp
@@ -698,12 +699,12 @@ class World:
                 * self.AreaY[:, 1:, 2]
                 * dt
                 * (
-                    np.roll(self.Temperature, 1, axis=1)[:, :, 2]
-                    - self.Temperature[:, :, 2]
+                    np.pad(self.Temperature[:, :-1, 2], ((0, 0), (1, 0)))
+                    - np.pad(self.Temperature[:, 1:, 2], ((0, 0), (1, 0)))
                 )
                 / (
                     self.Radius
-                    * (np.roll(self.AltitudesNodes, 1, axis=0) - self.AltitudesNodes)[
+                    * (np.roll(self.AltitudesNodes, 1, axis=1) - self.AltitudesNodes)[
                         :, :, 2
                     ]
                     * World.airCp
@@ -720,7 +721,7 @@ class World:
                     + (
                         np.roll(self.ElevationsNodes, 1, axis=2)
                         - np.roll(self.ElevationsNodes, 0, axis=2)
-                    )[:, :, 0]
+                    )[:, :, 2]
                     * World.waterK
                 )
                 / (np.roll(self.ElevationsNodes, 2, axis=2) - self.ElevationsNodes)[
@@ -752,9 +753,9 @@ class World:
                         np.roll(self.ElevationsNodes, 2, axis=2)
                         - np.roll(self.ElevationsNodes, 1, axis=2)
                     )[:, :, 0]
-                    * World.airK
+                    * World.earthK
                 )
-                / (np.roll(self.ElevationsNodes, 3, axis=2) - self.ElevationsNodes)[
+                / (np.roll(self.ElevationsNodes, 1, axis=2) - self.ElevationsNodes)[
                     :, :, 2
                 ]
                 * self.AreaZ[:, :, 2]
@@ -773,6 +774,7 @@ class World:
                 )
             )
         )
+
         velocityX[:, :, 2] += (
             # Gradient of pressure
             0.5
@@ -882,6 +884,7 @@ class World:
                 )[:, :, 2]
             )
         )
+        # endregion
         """
         dv/dt = grad(P) dA
         m/s^2 = kg*m/s^2*m^2/m
