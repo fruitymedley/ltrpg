@@ -1,3 +1,4 @@
+from matplotlib import pyplot as plt
 import numpy as np
 import pandas as pd
 
@@ -10,8 +11,8 @@ elevation = df.to_numpy()[:, 1:]
 
 R = 8.314  # J/K*mol
 g = 0.029  # kg/mol
-dt = 1
-I0 = 1.4e9
+dt = 3600
+I0 = 1.4e9  # W/km^2
 
 # %%
 
@@ -150,7 +151,7 @@ class World:
             axis=1,
         )
 
-        self.Temperature = 290 + 40 * np.cos(self.AltitudesNodes)
+        self.Temperature = 290 + 0 * np.cos(self.AltitudesNodes)
         self.Volume = (
             (2 * np.pi / self.SizeX)
             * (2 / self.SizeY)
@@ -169,12 +170,10 @@ class World:
                 2
                 * np.pi
                 / (self.LenDay * 3600)
-                / (self.ElevationsXFaces[:, :, 1:] - self.ElevationsXFaces[:, :, :-1])
+                # 1/(r2-r1)Swrdr = w/(r2-r1)*1/2*(r2^2-r1^2)
                 * 0.5
-                * (
-                    np.square(self.Radius + self.ElevationsXFaces[:, :, 1:])
-                    - np.square(self.Radius + self.ElevationsXFaces[:, :, :-1])
-                )
+                * (self.ElevationsXFaces[:, :, 1:] - self.ElevationsXFaces[:, :, :-1])
+                * np.cos(self.AltitudesNodes)
             )
         self.VelocityY = np.zeros((self.SizeX, self.SizeY + 1, self.SizeZ - 1))
 
@@ -594,7 +593,7 @@ class World:
                     + np.square(
                         (
                             np.pad(
-                                np.roll(self.VelocityX[:, :, 1], 0, axis=0),
+                                np.roll(self.VelocityX[:, :, 1], -1, axis=0),
                                 ((0, 0), (0, 1)),
                             )
                             + np.pad(
@@ -617,11 +616,11 @@ class World:
                         (
                             np.pad(
                                 np.roll(self.VelocityX[:, :, 1], -1, axis=0),
-                                ((0, 0), (0, 1)),
+                                ((0, 0), (1, 0)),
                             )
                             + np.pad(
-                                np.roll(self.VelocityX[:, :, 1], -1, axis=0),
-                                ((0, 0), (0, 1)),
+                                np.roll(self.VelocityX[:, :, 1], 0, axis=0),
+                                ((0, 0), (1, 0)),
                             )
                         )
                         / 2
@@ -783,7 +782,7 @@ class World:
                 np.square(
                     (
                         np.roll(self.VelocityX[:, :, 2], 1, axis=0)
-                        + self.VelocityX[:, :, 1]
+                        + self.VelocityX[:, :, 2]
                     )
                     / 2
                 )
@@ -834,14 +833,14 @@ class World:
                 np.square(
                     (
                         np.roll(self.VelocityY[:, :, 2], 1, axis=1)
-                        + self.VelocityY[:, :, 1]
+                        + self.VelocityY[:, :, 2]
                     )
                     / 2
                 )
                 + np.square(
                     (
                         np.pad(
-                            np.roll(self.VelocityX[:, :, 2], 0, axis=0),
+                            np.roll(self.VelocityX[:, :, 2], -1, axis=0),
                             ((0, 0), (0, 1)),
                         )
                         + np.pad(
@@ -864,11 +863,11 @@ class World:
                     (
                         np.pad(
                             np.roll(self.VelocityX[:, :, 2], -1, axis=0),
-                            ((0, 0), (0, 1)),
+                            ((0, 0), (1, 0)),
                         )
                         + np.pad(
-                            np.roll(self.VelocityX[:, :, 2], -1, axis=0),
-                            ((0, 0), (0, 1)),
+                            np.roll(self.VelocityX[:, :, 2], 0, axis=0),
+                            ((0, 0), (1, 0)),
                         )
                     )
                     / 2
@@ -877,7 +876,6 @@ class World:
             / (
                 World.waterDensity
                 * self.Radius
-                * np.cos(self.AltitudesFaces[:, :, 2])
                 * (
                     np.pad(self.AltitudesNodes, ((0, 0), (1, 0), (0, 0)))
                     - np.pad(self.AltitudesNodes, ((0, 0), (0, 1), (0, 0)))
@@ -918,3 +916,11 @@ class World:
 # %%
 
 world = World(elevation, lenYear=120)
+x1, y1 = world.VelocityX, world.VelocityY
+for i in range(100):
+    world.Update(I0)
+plt.figure()
+plt.quiver(
+    world.VelocityX[::50, ::50, 2].transpose() - x1[::50, ::50, 2].transpose(),
+    world.VelocityY[::50, 1::50, 2].transpose() - y1[::50, 1::50, 2].transpose(),
+)
