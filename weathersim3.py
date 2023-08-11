@@ -166,14 +166,36 @@ class World:
         self.Mass[:, :, 1] *= World.waterDensity
         self.Mass[:, :, 2] *= World.airDensity
         with np.errstate(divide="ignore", invalid="ignore"):
-            self.VelocityX = np.nan_to_num(
+            self.VelocityX = self.VelocityXInitX = np.nan_to_num(
                 2
                 * np.pi
                 / (self.LenDay * 3600)
                 # 1/(r2-r1)Swrdr = w/(r2-r1)*1/2*(r2^2-r1^2)
-                * 0.5
-                * (self.ElevationsXFaces[:, :, 1:] - self.ElevationsXFaces[:, :, :-1])
+                * (
+                    0.5
+                    * (
+                        self.ElevationsXFaces[:, :, 1:]
+                        - self.ElevationsXFaces[:, :, :-1]
+                    )
+                    + self.Radius
+                )
                 * np.cos(self.AltitudesNodes)
+            )
+
+            self.VelocityXInitY = np.nan_to_num(
+                2
+                * np.pi
+                / (self.LenDay * 3600)
+                # 1/(r2-r1)Swrdr = w/(r2-r1)*1/2*(r2^2-r1^2)
+                * (
+                    0.5
+                    * (
+                        self.ElevationsYFaces[:, :, 1:]
+                        - self.ElevationsYFaces[:, :, :-1]
+                    )
+                    + self.Radius
+                )
+                * np.cos(self.AltitudesFaces)
             )
         self.VelocityY = np.zeros((self.SizeX, self.SizeY + 1, self.SizeZ - 1))
 
@@ -514,7 +536,7 @@ class World:
                     / (self.Mass[:, :, 1] * self.waterCp)
                 )
             )
-            # v_x = dP/dx / p
+            # v_x' = dP/dx / p
             # dP/dx = (P_x+1 - P_x-1) / dx = 1/2p((v_x-1)^2 - (v_x+1)^2)
             #
 
@@ -523,9 +545,10 @@ class World:
                 # Between water
                 (self.Volume[:, :, 1] > 0).astype(int)
                 * (np.roll(self.Volume[:, :, 1], 1, axis=1) > 0).astype(int)
-                *
+                # Time integral
+                * dt
                 # Gradient of pressure
-                0.5
+                * -0.5
                 * (
                     # v_1^2
                     np.square(
@@ -560,8 +583,7 @@ class World:
                     )
                 )
                 / (
-                    World.waterDensity
-                    * self.Radius
+                    self.Radius
                     * np.cos(self.AltitudesNodes[:, :, 1])
                     * (self.AzimuthsNodes - np.roll(self.AzimuthsNodes, -1, axis=0))[
                         :, :, 1
@@ -578,9 +600,10 @@ class World:
                 # Between poles
                 (self.AltitudesFaces[:, :, 1] > -1).astype(int)
                 * (self.AltitudesFaces[:, :, 1] < 1).astype(int)
-                *
+                # Time integral
+                * dt
                 # Gradient of pressure
-                0.5
+                * -0.5
                 * (
                     # v_1^2
                     np.square(
@@ -612,23 +635,26 @@ class World:
                         )
                         / 2
                     )
-                    - np.square(
-                        (
-                            np.pad(
-                                np.roll(self.VelocityX[:, :, 1], -1, axis=0),
-                                ((0, 0), (1, 0)),
+                    - np.roll(
+                        np.square(
+                            (
+                                np.pad(
+                                    np.roll(self.VelocityX[:, :, 1], -1, axis=0),
+                                    ((0, 0), (1, 0)),
+                                )
+                                + np.pad(
+                                    np.roll(self.VelocityX[:, :, 1], 0, axis=0),
+                                    ((0, 0), (1, 0)),
+                                )
                             )
-                            + np.pad(
-                                np.roll(self.VelocityX[:, :, 1], 0, axis=0),
-                                ((0, 0), (1, 0)),
-                            )
-                        )
-                        / 2
+                            / 2
+                        ),
+                        -1,
+                        axis=1,
                     )
                 )
                 / (
-                    World.waterDensity
-                    * self.Radius
+                    self.Radius
                     * np.cos(self.AltitudesFaces[:, :, 1])
                     * (
                         np.pad(self.AltitudesNodes, ((0, 0), (1, 0), (0, 0)))
@@ -775,8 +801,10 @@ class World:
         )
 
         velocityX[:, :, 2] += (
+            # Time integral
+            dt
             # Gradient of pressure
-            0.5
+            * -0.5
             * (
                 # v_1^2
                 np.square(
@@ -785,6 +813,7 @@ class World:
                         + self.VelocityX[:, :, 2]
                     )
                     / 2
+                    - self.VelocityXInitX[:, :, 2]
                 )
                 + np.square(
                     (
@@ -801,6 +830,7 @@ class World:
                         + np.roll(self.VelocityX[:, :, 2], -1, axis=0)
                     )
                     / 2
+                    - self.VelocityXInitX[:, :, 2]
                 )
                 - np.square(
                     (
@@ -811,8 +841,7 @@ class World:
                 )
             )
             / (
-                World.waterDensity
-                * self.Radius
+                self.Radius
                 * np.cos(self.AltitudesNodes[:, :, 2])
                 * (self.AzimuthsNodes - np.roll(self.AzimuthsNodes, -1, axis=0))[
                     :, :, 2
@@ -825,9 +854,10 @@ class World:
             # Between poles
             (self.AltitudesFaces[:, :, 2] > -1).astype(int)
             * (self.AltitudesFaces[:, :, 2] < 1).astype(int)
-            *
+            # Time integral
+            * dt
             # Gradient of pressure
-            0.5
+            * -0.5
             * (
                 # v_1^2
                 np.square(
@@ -837,18 +867,23 @@ class World:
                     )
                     / 2
                 )
-                + np.square(
-                    (
-                        np.pad(
-                            np.roll(self.VelocityX[:, :, 2], -1, axis=0),
-                            ((0, 0), (0, 1)),
+                + np.roll(
+                    np.square(
+                        (
+                            np.pad(
+                                np.roll(self.VelocityX[:, :, 2], -1, axis=0),
+                                ((0, 0), (0, 1)),
+                            )
+                            + np.pad(
+                                np.roll(self.VelocityX[:, :, 2], 0, axis=0),
+                                ((0, 0), (0, 1)),
+                            )
                         )
-                        + np.pad(
-                            np.roll(self.VelocityX[:, :, 2], 0, axis=0),
-                            ((0, 0), (0, 1)),
-                        )
-                    )
-                    / 2
+                        / 2
+                        - self.VelocityXInitY[:, :, 2]
+                    ),
+                    1,
+                    axis=1,
                 )
                 -
                 # v_2^2
@@ -863,19 +898,19 @@ class World:
                     (
                         np.pad(
                             np.roll(self.VelocityX[:, :, 2], -1, axis=0),
-                            ((0, 0), (1, 0)),
+                            ((0, 0), (0, 1)),
                         )
                         + np.pad(
                             np.roll(self.VelocityX[:, :, 2], 0, axis=0),
-                            ((0, 0), (1, 0)),
+                            ((0, 0), (0, 1)),
                         )
                     )
                     / 2
+                    - self.VelocityXInitY[:, :, 2]
                 )
             )
             / (
-                World.waterDensity
-                * self.Radius
+                self.Radius
                 * (
                     np.pad(self.AltitudesNodes, ((0, 0), (1, 0), (0, 0)))
                     - np.pad(self.AltitudesNodes, ((0, 0), (0, 1), (0, 0)))
@@ -917,10 +952,26 @@ class World:
 
 world = World(elevation, lenYear=120)
 x1, y1 = world.VelocityX, world.VelocityY
-for i in range(100):
+for i in range(1):
     world.Update(I0)
 plt.figure()
 plt.quiver(
-    world.VelocityX[::50, ::50, 2].transpose() - x1[::50, ::50, 2].transpose(),
+    (world.VelocityX[::50, ::50, 2].transpose() - x1[::50, ::50, 2].transpose()),
     world.VelocityY[::50, 1::50, 2].transpose() - y1[::50, 1::50, 2].transpose(),
+    scale=max(
+        np.max(
+            np.abs(
+                world.VelocityX[::50, ::50, 2].transpose()
+                - x1[::50, ::50, 2].transpose()
+            )
+        ),
+        np.max(
+            np.abs(
+                world.VelocityY[::50, 1::50, 2].transpose()
+                - y1[::50, 1::50, 2].transpose()
+            )
+        ),
+    ),
+    angles="xy",
+    scale_units="xy",
 )
