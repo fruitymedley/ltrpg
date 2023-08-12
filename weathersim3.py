@@ -11,7 +11,7 @@ elevation = df.to_numpy()[:, 1:]
 
 R = 8.314  # J/K*mol
 g = 0.029  # kg/mol
-dt = 3600  # s
+dt = 60  # s
 I0 = 1.4e9  # W/km^2
 
 # %%
@@ -62,6 +62,8 @@ class World:
     earthCp = 800  # J/kg*K
     waterCp = 4182  # J/kg*K
     airCp = 1005  # J/kg*K
+
+    waterExpansion = 207 * 1e-6  # km^3/km^3*K
 
     sigma = 5.669e-2  # W/km^2K^4
 
@@ -153,7 +155,7 @@ class World:
             axis=1,
         )
 
-        self.Temperature = 290 + 0 * np.cos(self.AltitudesNodes)
+        self.Temperature = self.TemperatureInit = 290 + 0 * np.cos(self.AltitudesNodes)
         self.Volume = (
             (2 * np.pi / self.SizeX)
             * (2 / self.SizeY)
@@ -677,7 +679,13 @@ class World:
                 # Gradient of pressure
                 * -(
                     # P_1
-                    World.waterDensity
+                    np.roll(self.Mass[:, :, 1] / self.Volume[:, :, 1], 1, axis=0)
+                    / np.roll(
+                        World.waterExpansion
+                        * (self.Temperature[:, :, 1] - self.TemperatureInit[:, :, 1]),
+                        1,
+                        axis=0,
+                    )
                     * (
                         # z_1
                         World.gravity * self.ElevationsXFaces[:, :, 1]
@@ -707,7 +715,14 @@ class World:
                         )
                     )
                     # P_2
-                    - World.waterDensity
+                    - self.Mass[:, :, 1]
+                    / self.Volume[:, :, 1]
+                    / np.roll(
+                        World.waterExpansion
+                        * (self.Temperature[:, :, 1] - self.TemperatureInit[:, :, 1]),
+                        0,
+                        axis=0,
+                    )
                     * (
                         # z_2
                         World.gravity * self.ElevationsXFaces[:, :, 1]
@@ -764,7 +779,15 @@ class World:
                 # Gradient of pressure
                 * -(
                     # P_1
-                    self.waterDensity
+                    np.pad(
+                        self.Mass[:, :, 1] / self.Volume[:, :, 1],
+                        ((0, 0), (0, 1)),
+                    )
+                    / np.pad(
+                        World.waterExpansion
+                        * (self.Temperature[:, :, 1] - self.TemperatureInit[:, :, 1]),
+                        ((0, 0), (0, 1)),
+                    )
                     * (
                         # z_1
                         World.gravity * self.ElevationsYFaces[:, :, 1]
@@ -808,7 +831,15 @@ class World:
                         )
                     )
                     # P_2
-                    - self.waterDensity
+                    - np.pad(
+                        self.Mass[:, :, 1] / self.Volume[:, :, 1],
+                        ((0, 0), (1, 0)),
+                    )
+                    / np.pad(
+                        World.waterExpansion
+                        * (self.Temperature[:, :, 1] - self.TemperatureInit[:, :, 1]),
+                        ((0, 0), (1, 0)),
+                    )
                     * (
                         # z_2
                         World.gravity * self.ElevationsYFaces[:, :, 1]
@@ -1296,20 +1327,20 @@ class World:
 
 world = World(elevation, lenYear=120)
 x1, y1, t1 = world.VelocityX, world.VelocityY, world.Temperature
-for i in range(10):
+for i in range(2):
     world.Update(I0)
     print(
-        np.nan_to_num((world.Mass / world.Volume)[:, :, 2], nan=1e12).max(),
-        (world.VelocityX - x1)[:, :, 2].max(),
-        world.VelocityY[:, :, 2].max(),
+        np.nan_to_num((world.Mass / world.Volume)[:, :, 1], nan=1e12).max(),
+        (world.VelocityX - x1)[:, :, 1].max(),
+        world.VelocityY[:, :, 1].max(),
     )
 plt.figure()
 # plt.pcolor((world.Temperature - t1)[:, :, 1].transpose())
 plt.streamplot(
-    np.arange(1000),
-    np.arange(1000),
-    (world.VelocityX[:, :, 2] - x1[:, :, 2]),
-    world.VelocityY[:, 1:, 2] - y1[:, 1:, 2],
+    np.arange(100),
+    np.arange(100),
+    (world.VelocityX[100:200, 100:200, 1] - x1[100:200, 100:200, 1]),
+    world.VelocityY[100:200, 100:200, 1] - y1[100:200, 100:200, 1],
     # scale=max(
     #     np.max(
     #         np.abs(
@@ -1328,4 +1359,4 @@ plt.streamplot(
     # scale_units="xy",
 )
 
-plt.pcolor((world.VelocityX[:, :, 1] - x1[:, :, 1]))
+plt.pcolor((world.VelocityX[100:200, 100:200, 1] - x1[100:200, 100:200, 1]))
