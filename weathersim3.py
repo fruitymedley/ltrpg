@@ -73,15 +73,15 @@ class World:
     def __init__(
         self,
         elevation: np.ndarray,
-        scale: float = 1,
-        depth: float = 12,
-        tilt: float = 23,
+        scale: float = 1.0,
+        depth: float = 12.0,
+        tilt: float = 23.0,
         lenYear: int = 365,
         lenDay: int = 24,
         day: int = 0,
     ) -> None:
-        self.SizeX = elevation.shape[1]
-        self.SizeY = elevation.shape[0]
+        self.SizeX = elevation.shape[0]
+        self.SizeY = elevation.shape[1]
         self.SizeZ = 4
 
         self.Scale = scale
@@ -109,12 +109,12 @@ class World:
         self.AzimuthsNodes, self.AltitudesNodes, self.ElevationsNodes = np.meshgrid(
             self.LongitudesNodes,
             self.LatitudesNodes,
-            [-self.Depth, 0, self.Depth],
+            [-self.Depth, 0.0, self.Depth],
             indexing="ij",
         )
-        self.ElevationsNodes[:, :, 0] = (-self.Depth + elevation) / 2
-        self.ElevationsNodes[:, :, 1] = (elevation + np.maximum(0, elevation)) / 2
-        self.ElevationsNodes[:, :, 2] = (np.maximum(0, elevation) + self.Depth) / 2
+        self.ElevationsNodes[:, :, 0] = (-self.Depth + elevation) / 2.0
+        self.ElevationsNodes[:, :, 1] = (elevation + np.maximum(0, elevation)) / 2.0
+        self.ElevationsNodes[:, :, 2] = (np.maximum(0, elevation) + self.Depth) / 2.0
 
         self.AzimuthsFaces, _, _ = np.meshgrid(
             self.LongitudesFaces,
@@ -402,27 +402,30 @@ class World:
                             np.roll(
                                 self.Volume[:, :, 1],
                                 -1,
-                                axis=1,
+                                axis=0,
                             )
                             > 0
                         ).astype(int)
                         * np.roll(
                             (self.VelocityX - self.VelocityXInitX)[:, :, 1]
-                            * self.AreaX[:, :, 1],
+                            * self.AreaX[:, :, 1]
+                            * (
+                                self.Temperature[:, :, 1]
+                                + np.roll(self.Temperature[:, :, 1], 1, axis=0)
+                            )
+                            / 2,
                             -1,
-                            axis=1,
+                            axis=0,
                         )
                         # West
-                        + (
-                            np.roll(
-                                self.Volume[:, :, 1],
-                                1,
-                                axis=1,
-                            )
-                            > 0
-                        ).astype(int)
+                        + (self.Volume[:, :, 1] > 0).astype(int)
                         * (self.VelocityX - self.VelocityXInitX)[:, :, 1]
                         * self.AreaX[:, :, 1]
+                        * (
+                            self.Temperature[:, :, 1]
+                            + np.roll(self.Temperature[:, :, 1], 1, axis=0)
+                        )
+                        / 2
                         # North
                         - (
                             np.pad(
@@ -435,6 +438,11 @@ class World:
                         )[:, 1:]
                         * self.VelocityY[:, 1:, 1]
                         * self.AreaY[:, 1:, 1]
+                        * (
+                            self.Temperature[:, :, 1]
+                            + np.roll(self.Temperature[:, :, 1], 1, axis=1)
+                        )
+                        / 2
                         # South
                         + (
                             np.pad(
@@ -447,6 +455,11 @@ class World:
                         )[:, :-1]
                         * self.VelocityY[:, :-1, 1]
                         * self.AreaY[:, :-1, 1]
+                        * (
+                            self.Temperature[:, :, 1]
+                            + np.roll(self.Temperature[:, :, 1], 1, axis=1)
+                        )
+                        / 2
                     )
                 )
                 / (
@@ -643,12 +656,12 @@ class World:
                 / World.waterDensity
                 * (
                     # East
-                    -(np.roll(self.Volume[:, :, 1], -1, axis=1) > 0).astype(int)
+                    -(np.roll(self.Volume[:, :, 1], -1, axis=0) > 0).astype(int)
                     * np.roll(
                         (self.VelocityX - self.VelocityXInitX)[:, :, 1]
                         * self.AreaX[:, :, 1],
                         -1,
-                        axis=1,
+                        axis=0,
                     )
                     # West
                     + (np.roll(self.Volume[:, :, 1], 1, axis=1) > 0).astype(int)
@@ -949,17 +962,39 @@ class World:
                     # East
                     -np.roll(
                         (self.VelocityX - self.VelocityXInitX)[:, :, 2]
-                        * self.AreaX[:, :, 2],
+                        * self.AreaX[:, :, 2]
+                        * (
+                            self.Temperature[:, :, 2]
+                            + np.roll(self.Temperature[:, :, 2], 1, axis=0)
+                        )
+                        / 2,
                         -1,
-                        axis=1,
+                        axis=0,
                     )
                     # West
                     + (self.VelocityX - self.VelocityXInitX)[:, :, 2]
                     * self.AreaX[:, :, 2]
+                    * (
+                        self.Temperature[:, :, 2]
+                        + np.roll(self.Temperature[:, :, 2], 1, axis=0)
+                    )
+                    / 2
                     # North
-                    - self.VelocityY[:, 1:, 2] * self.AreaY[:, 1:, 2]
+                    - self.VelocityY[:, 1:, 2]
+                    * self.AreaY[:, 1:, 2]
+                    * (
+                        self.Temperature[:, :, 2]
+                        + np.roll(self.Temperature[:, :, 2], 1, axis=1)
+                    )
+                    / 2
                     # South
-                    + self.VelocityY[:, :-1, 2] * self.AreaY[:, :-1, 2]
+                    + self.VelocityY[:, :-1, 2]
+                    * self.AreaY[:, :-1, 2]
+                    * (
+                        self.Temperature[:, :, 2]
+                        + np.roll(self.Temperature[:, :, 2], 1, axis=1)
+                    )
+                    / 2
                 )
             ) / (
                 self.Mass[:, :, 2]
@@ -982,7 +1017,6 @@ class World:
                     + self.VelocityY[:, :-1, 2] * self.AreaY[:, :-1, 2]
                 )
             )
-            print(temperature[:, :, 2])
 
             # conduction
             temperature[:, :, 2] += (
@@ -1135,7 +1169,7 @@ class World:
                         (self.VelocityX - self.VelocityXInitX)[:, :, 2]
                         * self.AreaX[:, :, 2],
                         -1,
-                        axis=1,
+                        axis=0,
                     )
                     # West
                     + (self.VelocityX - self.VelocityXInitX)[:, :, 2]
@@ -1445,9 +1479,9 @@ class World:
 
 # %%
 
-world = World(elevation, lenYear=120)
+world = World(elevation.transpose(), lenYear=120)
 x1, y1, t1 = world.VelocityX, world.VelocityY, world.Temperature
-for i in range(1):
+for i in range(10):
     world.Update(I0)
     print(
         (world.VelocityX - x1)[:, :, 1].max(),
@@ -1455,29 +1489,17 @@ for i in range(1):
         (world.VelocityX - x1)[:, :, 2].max(),
         world.VelocityY[:, :, 2].max(),
     )
+    print(world.Temperature[:, :, 1].mean(), world.Temperature[:, :, 2].mean())
+    plt.figure()
+    plt.plot(world.VelocityY[100, :, 1])
 plt.figure()
 # plt.pcolor((world.Temperature - t1)[:, :, 1].transpose())
 plt.streamplot(
-    np.arange(100),
-    np.arange(100),
-    (world.VelocityX[100:200, 100:200, 1] - x1[100:200, 100:200, 1]),
-    world.VelocityY[100:200, 100:200, 1] - y1[100:200, 100:200, 1],
-    # scale=max(
-    #     np.max(
-    #         np.abs(
-    #             world.VelocityX[::50, ::50, 2].transpose()
-    #             - x1[::50, ::50, 2].transpose()
-    #         )
-    #     ),
-    #     np.max(
-    #         np.abs(
-    #             world.VelocityY[::50, 1::50, 2].transpose()
-    #             - y1[::50, 1::50, 2].transpose()
-    #         )
-    #     ),
-    # ),
-    # angles="xy",
-    # scale_units="xy",
+    np.arange(1000),
+    np.arange(1000),
+    (world.VelocityX[:, :, 1] - x1[:, :, 1]).transpose(),
+    (world.VelocityY[:, 1:, 1] - y1[:, 1:, 1]).transpose(),
+    density=3,
 )
 
-plt.pcolor((world.VelocityX[100:200, 100:200, 1] - x1[100:200, 100:200, 1]))
+plt.pcolor((world.VelocityY[:, :, 1] - y1[:, :, 1]).transpose())
