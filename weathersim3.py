@@ -11,7 +11,7 @@ elevation = df.to_numpy()[:, 1:]
 
 R = 8.314  # J/K*mol
 g = 0.029  # kg/mol
-dt = 60  # s
+dt = 24 * 3600 / 1000  # s
 I0 = 1.4e9  # W/km^2
 
 # %%
@@ -63,7 +63,7 @@ class World:
     waterCp = 4182  # J/kg*K
     airCp = 1005  # J/kg*K
 
-    waterExpansion = 207 * 1e-6  # km^3/km^3*K
+    waterExpansion = 69 * 1e-6  # km^3/km^3*K
 
     sigma = 5.669e-2  # W/km^2K^4
 
@@ -681,9 +681,15 @@ class World:
                     # P_1
                     np.roll(self.Mass[:, :, 1] / self.Volume[:, :, 1], 1, axis=0)
                     / np.roll(
-                        1
-                        + World.waterExpansion
-                        * (self.Temperature[:, :, 1] - self.TemperatureInit[:, :, 1]),
+                        np.power(
+                            1
+                            + World.waterExpansion
+                            * (
+                                self.Temperature[:, :, 1]
+                                - self.TemperatureInit[:, :, 1]
+                            ),
+                            3,
+                        ),
                         1,
                         axis=0,
                     )
@@ -719,9 +725,15 @@ class World:
                     - self.Mass[:, :, 1]
                     / self.Volume[:, :, 1]
                     / np.roll(
-                        1
-                        + World.waterExpansion
-                        * (self.Temperature[:, :, 1] - self.TemperatureInit[:, :, 1]),
+                        np.power(
+                            1
+                            + World.waterExpansion
+                            * (
+                                self.Temperature[:, :, 1]
+                                - self.TemperatureInit[:, :, 1]
+                            ),
+                            3,
+                        ),
                         0,
                         axis=0,
                     )
@@ -757,8 +769,32 @@ class World:
                 / (
                     0.5
                     * (
-                        np.roll(self.Mass[:, :, 1] / self.Volume[:, :, 1], 1, axis=0)
-                        + self.Mass[:, :, 1] / self.Volume[:, :, 1]
+                        np.roll(
+                            self.Mass[:, :, 1]
+                            / self.Volume[:, :, 1]
+                            / np.power(
+                                1
+                                + World.waterExpansion
+                                * (
+                                    self.Temperature[:, :, 1]
+                                    - self.TemperatureInit[:, :, 1]
+                                ),
+                                3,
+                            ),
+                            1,
+                            axis=0,
+                        )
+                        + self.Mass[:, :, 1]
+                        / self.Volume[:, :, 1]
+                        / np.power(
+                            1
+                            + World.waterExpansion
+                            * (
+                                self.Temperature[:, :, 1]
+                                - self.TemperatureInit[:, :, 1]
+                            ),
+                            3,
+                        )
                     )
                     * self.Radius
                     * np.cos(self.AltitudesNodes[:, :, 1])
@@ -786,9 +822,15 @@ class World:
                         ((0, 0), (0, 1)),
                     )
                     / np.pad(
-                        1
-                        + World.waterExpansion
-                        * (self.Temperature[:, :, 1] - self.TemperatureInit[:, :, 1]),
+                        np.power(
+                            1
+                            + World.waterExpansion
+                            * (
+                                self.Temperature[:, :, 1]
+                                - self.TemperatureInit[:, :, 1]
+                            ),
+                            3,
+                        ),
                         ((0, 0), (0, 1)),
                     )
                     * (
@@ -839,9 +881,15 @@ class World:
                         ((0, 0), (1, 0)),
                     )
                     / np.pad(
-                        1
-                        + World.waterExpansion
-                        * (self.Temperature[:, :, 1] - self.TemperatureInit[:, :, 1]),
+                        np.power(
+                            1
+                            + World.waterExpansion
+                            * (
+                                self.Temperature[:, :, 1]
+                                - self.TemperatureInit[:, :, 1]
+                            ),
+                            3,
+                        ),
                         ((0, 0), (1, 0)),
                     )
                     * (
@@ -878,11 +926,31 @@ class World:
                     0.5
                     * (
                         np.pad(
-                            self.Mass[:, :, 1] / self.Volume[:, :, 1],
+                            self.Mass[:, :, 1]
+                            / self.Volume[:, :, 1]
+                            / np.power(
+                                1
+                                + World.waterExpansion
+                                * (
+                                    self.Temperature[:, :, 1]
+                                    - self.TemperatureInit[:, :, 1]
+                                ),
+                                3,
+                            ),
                             ((0, 0), (0, 1)),
                         )
                         + np.pad(
-                            self.Mass[:, :, 1] / self.Volume[:, :, 1],
+                            self.Mass[:, :, 1]
+                            / self.Volume[:, :, 1]
+                            / np.power(
+                                1
+                                + World.waterExpansion
+                                * (
+                                    self.Temperature[:, :, 1]
+                                    - self.TemperatureInit[:, :, 1]
+                                ),
+                                3,
+                            ),
                             ((0, 0), (1, 0)),
                         )
                     )
@@ -1331,7 +1399,7 @@ class World:
 
 world = World(elevation, lenYear=120)
 x1, y1, t1 = world.VelocityX, world.VelocityY, world.Temperature
-for i in range(2):
+for i in range(10):
     world.Update(I0)
     print(
         np.nan_to_num((world.Mass / world.Volume)[:, :, 1], nan=1e12).max(),
