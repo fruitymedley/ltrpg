@@ -681,7 +681,8 @@ class World:
                     # P_1
                     np.roll(self.Mass[:, :, 1] / self.Volume[:, :, 1], 1, axis=0)
                     / np.roll(
-                        World.waterExpansion
+                        1
+                        + World.waterExpansion
                         * (self.Temperature[:, :, 1] - self.TemperatureInit[:, :, 1]),
                         1,
                         axis=0,
@@ -718,7 +719,8 @@ class World:
                     - self.Mass[:, :, 1]
                     / self.Volume[:, :, 1]
                     / np.roll(
-                        World.waterExpansion
+                        1
+                        + World.waterExpansion
                         * (self.Temperature[:, :, 1] - self.TemperatureInit[:, :, 1]),
                         0,
                         axis=0,
@@ -784,7 +786,8 @@ class World:
                         ((0, 0), (0, 1)),
                     )
                     / np.pad(
-                        World.waterExpansion
+                        1
+                        + World.waterExpansion
                         * (self.Temperature[:, :, 1] - self.TemperatureInit[:, :, 1]),
                         ((0, 0), (0, 1)),
                     )
@@ -836,7 +839,8 @@ class World:
                         ((0, 0), (1, 0)),
                     )
                     / np.pad(
-                        World.waterExpansion
+                        1
+                        + World.waterExpansion
                         * (self.Temperature[:, :, 1] - self.TemperatureInit[:, :, 1]),
                         ((0, 0), (1, 0)),
                     )
