@@ -11,8 +11,10 @@ elevation = df.to_numpy()[:, 1:]
 
 R = 8.314  # J/K*mol
 g = 0.029  # kg/mol
-dt = 24 * 3600 / 1000  # s
+dt = 24 * 3600 / 1000 / 10  # s
 I0 = 1.4e9  # W/km^2
+
+print(f"v-max: {1 / dt} {3600 / dt} (mph)")
 
 # %%
 
@@ -1481,17 +1483,18 @@ class World:
 
 world = World(elevation.transpose(), lenYear=120)
 x1, y1, t1 = world.VelocityX, world.VelocityY, world.Temperature
-for i in range(10):
+for i in range(100):
     world.Update(I0)
     print(
-        (world.VelocityX - x1)[:, :, 1].max(),
-        world.VelocityY[:, :, 1].max(),
-        (world.VelocityX - x1)[:, :, 2].max(),
-        world.VelocityY[:, :, 2].max(),
+        np.abs(world.VelocityX - x1)[:, :, 1].max(),
+        np.abs(world.VelocityY)[:, :, 1].max(),
+        np.abs(world.VelocityX - x1)[:, :, 2].max(),
+        np.abs(world.VelocityY)[:, :, 2].max(),
     )
     print(world.Temperature[:, :, 1].mean(), world.Temperature[:, :, 2].mean())
-    plt.figure()
-    plt.plot(world.VelocityY[100, :, 1])
+    # plt.figure()
+    # plt.plot(world.VelocityY[100, :, 1])
+    # plt.show()
 plt.figure()
 # plt.pcolor((world.Temperature - t1)[:, :, 1].transpose())
 plt.streamplot(
