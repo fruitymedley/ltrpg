@@ -119,6 +119,9 @@ wrap = np.concatenate(
     axis=1,
 )
 humidity = (elevation > 0).astype(int) * signal.convolve2d(filter, wrap, "valid")
+humidity = (100 - 100.0 / 2**8) / (humidity.max() - humidity.min()) * (
+    humidity - humidity.min()
+) + 100.0 / 2**8
 plt.pcolormesh(
     X.transpose(),
     Y.transpose(),
@@ -134,8 +137,9 @@ for i in range(Xsize):
             biome[i, j] = hsv_to_rgb(0.7, 1, 0.6)
         else:
             biome[i, j] = np.square(np.cos(Y[i, j])) * (
-                (humidity[i, j] / 100) * np.array([0 / 255.0, 227 / 255.0, 174 / 255.0])
-                + (1 - humidity[i, j] / 100)
+                (np.log2(humidity[i, j] / 100) / 8 + 1)
+                * np.array([0 / 255.0, 227 / 255.0, 174 / 255.0])
+                + (1 - (np.log2(humidity[i, j] / 100) / 8 + 1))
                 * np.array([227 / 255.0, 178 / 255.0, 0 / 255.0])
             ) + (1 - np.square(np.cos(Y[i, j]))) * np.array(
                 [240 / 255.0, 240 / 255.0, 240 / 255.0]
