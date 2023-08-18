@@ -137,7 +137,7 @@ for i in range(Xsize):
             biome[i, j] = hsv_to_rgb(0.7, 1, 0.6)
         else:
             temp = max(0, np.log2(np.square(np.cos(Y[i, j]))) + 5) / 5.0
-            hum = max(0, np.log2(humidity[i, j] / 100) / (8 - temp) + 1)
+            hum = min(1, max(0, np.log2(humidity[i, j] / 100) / (8 - temp) + 1))
 
             biome[i, j] = temp * (
                 hum * np.array([0 / 255.0, 227 / 255.0, 174 / 255.0])
