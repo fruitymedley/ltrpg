@@ -89,23 +89,22 @@ humidity = np.vectorize(treck)(X, Y)
 print("Done")
 
 
-filterSize = 50
-decay = 0.02
+filterSize = 40
+variance = 0.01
 filter = (
-    np.square(decay)
-    / (2 * np.pi)
+    1
+    / (2 * np.pi * variance)
     * np.exp(
-        -decay
-        * np.sqrt(
-            np.sum(
-                np.square(
-                    np.mgrid[
-                        -filterSize : filterSize + 1 : 1,
-                        -filterSize : filterSize + 0.5 : 0.5,
-                    ]
-                ),
-                axis=0,
-            )
+        -1
+        / (2 * variance)
+        * np.sum(
+            np.square(
+                np.mgrid[
+                    -filterSize : filterSize + 1 : 1,
+                    -filterSize : filterSize + 0.5 : 0.5,
+                ]
+            ),
+            axis=0,
         )
     )
 )
