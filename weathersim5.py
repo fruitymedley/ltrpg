@@ -54,6 +54,11 @@ dhdy = np.concatenate(
 
 
 def treck(x, y):
+    i, j = min(Xsize - 1, max(0, int(Xsize * x / (2 * np.pi)))), min(
+        Ysize - 1, max(0, int(Ysize * (y / np.pi + 0.5)))
+    )
+    if elevation[i, j] < 0:
+        return 100
     h = 0
     decay = 1
     # decay = amount = 0.95
@@ -89,8 +94,8 @@ humidity = np.vectorize(treck)(X, Y)
 print("Done")
 
 
-filterSize = 40
-variance = 0.01
+filterSize = 200
+variance = 0.0001
 filter = (
     1
     / (2 * np.pi * variance)
