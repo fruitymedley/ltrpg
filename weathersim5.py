@@ -136,14 +136,13 @@ for i in range(Xsize):
         if elevation[i, j] < 0:
             biome[i, j] = hsv_to_rgb(0.7, 1, 0.6)
         else:
-            biome[i, j] = np.square(np.cos(Y[i, j])) * (
-                (np.log2(humidity[i, j] / 100) / 8 + 1)
-                * np.array([0 / 255.0, 227 / 255.0, 174 / 255.0])
-                + (1 - (np.log2(humidity[i, j] / 100) / 8 + 1))
-                * np.array([227 / 255.0, 178 / 255.0, 0 / 255.0])
-            ) + (1 - np.square(np.cos(Y[i, j]))) * np.array(
-                [240 / 255.0, 240 / 255.0, 240 / 255.0]
-            )
+            temp = max(0, np.log2(np.square(np.cos(Y[i, j]))) + 5) / 5.0
+            hum = max(0, np.log2(humidity[i, j] / 100) / (8 - temp) + 1)
+
+            biome[i, j] = temp * (
+                hum * np.array([0 / 255.0, 227 / 255.0, 174 / 255.0])
+                + (1 - hum) * np.array([227 / 255.0, 178 / 255.0, 0 / 255.0])
+            ) + temp * np.array([240 / 255.0, 240 / 255.0, 240 / 255.0])
 
 plt.figure()
 plt.imshow(np.flip(np.swapaxes(biome, (0), (1)), axis=0))
