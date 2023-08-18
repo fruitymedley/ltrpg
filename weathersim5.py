@@ -142,7 +142,7 @@ for i in range(Xsize):
             biome[i, j] = temp * (
                 hum * np.array([0 / 255.0, 227 / 255.0, 174 / 255.0])
                 + (1 - hum) * np.array([227 / 255.0, 178 / 255.0, 0 / 255.0])
-            ) + temp * np.array([240 / 255.0, 240 / 255.0, 240 / 255.0])
+            ) + (1 - temp) * np.array([240 / 255.0, 240 / 255.0, 240 / 255.0])
 
 plt.figure()
 plt.imshow(np.flip(np.swapaxes(biome, (0), (1)), axis=0))
