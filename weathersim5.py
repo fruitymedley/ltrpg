@@ -95,7 +95,7 @@ print("Done")
 
 
 filterSize = 200
-variance = 0.0001
+variance = 1000
 filter = (
     1
     / (2 * np.pi * variance)
@@ -113,7 +113,8 @@ filter = (
         )
     )
 )
-wrap = np.concatenate((humidity[-filterSize:], humidity, humidity[:filterSize]), axis=0)
+water = (elevation < 0).astype(int) * np.square(np.cos(Y))
+wrap = np.concatenate((water[-filterSize:], water, water[:filterSize]), axis=0)
 wrap = np.concatenate(
     (
         wrap[::-1, 2 * filterSize - 1 :: -1],
@@ -122,26 +123,37 @@ wrap = np.concatenate(
     ),
     axis=1,
 )
-humidity = (elevation > 0).astype(int) * signal.convolve2d(filter, wrap, "valid")
-humidity = (100 - 100.0 / 2**8) / (humidity.max() - humidity.min()) * (
-    humidity - humidity.min()
-) + 100.0 / 2**8
+statichumidity = (elevation >= 0).astype(int) * signal.convolve2d(filter, wrap, "valid")
+statichumidity = (100 - 100.0 / 2**8) / (
+    statichumidity.max() - statichumidity.min()
+) * (statichumidity - statichumidity.min()) + 100.0 / 2**8
 plt.pcolormesh(
     X.transpose(),
     Y.transpose(),
-    (elevation.transpose() > 0).astype(int) * humidity.transpose(),
+    (elevation.transpose() >= 0).astype(int) * statichumidity.transpose(),
 )
 
 # %%
 
 biome = np.zeros((Xsize, Ysize, 3))
+temps = np.zeros((Xsize, Ysize))
+hums = np.zeros((Xsize, Ysize))
 for i in range(Xsize):
     for j in range(Ysize):
         if elevation[i, j] < 0:
             biome[i, j] = hsv_to_rgb(0.7, 1, 0.6)
+            temps[i, j] = -1
+            hums[i, j] = -1
         else:
-            temp = max(0, np.log2(np.square(np.cos(Y[i, j]))) + 5) / 5.0
-            hum = min(1, max(0, np.log2(humidity[i, j] / 100) / (8 - temp) + 1))
+            temps[i, j] = int(max(0, min(5, np.log2(np.square(np.cos(Y[i, j]))) + 6)))
+            temp = temps[i, j] / 5.0
+            hums[i, j] = int(
+                min(
+                    2 + temps[i, j],
+                    max(0, np.log2(statichumidity[i, j] / 100) + 8),
+                )
+            )
+            hum = hums[i, j] / (2 + temps[i, j])
 
             biome[i, j] = temp * (
                 hum * np.array([0 / 255.0, 227 / 255.0, 174 / 255.0])
@@ -150,6 +162,17 @@ for i in range(Xsize):
 
 plt.figure()
 plt.imshow(np.flip(np.swapaxes(biome, (0), (1)), axis=0))
+
+# %%
+
+for j in range(6):
+    print("    " * (5 - j), end="")
+    for i in range(3 + j):
+        print(
+            f" {np.count_nonzero(np.logical_and((temps == j), (hums==i)).astype(int)):6} ",
+            end="",
+        )
+    print()
 
 # %%
 
