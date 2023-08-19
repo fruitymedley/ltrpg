@@ -1,3 +1,5 @@
+# %%
+
 from matplotlib import pyplot as plt
 from matplotlib import colors
 import numpy as np
@@ -58,11 +60,11 @@ def treck(x, y):
         Ysize - 1, max(0, int(Ysize * (y / np.pi + 0.5)))
     )
     if elevation[i, j] < 0:
-        return 100
+        return 0
     h = 0
     decay = 1
     # decay = amount = 0.95
-    for i in range(100):
+    for i in range(200):
         i, j = min(Xsize - 1, max(0, int(Xsize * x / (2 * np.pi)))), min(
             Ysize - 1, max(0, int(Ysize * (y / np.pi + 0.5)))
         )
@@ -85,12 +87,13 @@ def treck(x, y):
             y = np.pi / 2 - (y - np.pi / 2)
 
         if elevation[i, j] < 0:
-            h += 1 * np.cos(y) * decay
+            h += 1 * np.square(np.cos(y)) * decay
         # amount *= decay
     return h
 
 
-humidity = np.vectorize(treck)(X, Y)
+dynamicHumidity = np.vectorize(treck)(X, Y).astype(float)
+dynamicHumidity *= 100.0 / dynamicHumidity.max()
 print("Done")
 
 
@@ -135,6 +138,9 @@ plt.pcolormesh(
 
 # %%
 
+ratio = 0.8
+totalhumidity = ratio * dynamicHumidity + (1 - ratio) * statichumidity
+
 biome = np.zeros((Xsize, Ysize, 3))
 temps = np.zeros((Xsize, Ysize))
 hums = np.zeros((Xsize, Ysize))
@@ -145,12 +151,17 @@ for i in range(Xsize):
             temps[i, j] = -1
             hums[i, j] = -1
         else:
-            temps[i, j] = int(max(0, min(5, np.log2(np.square(np.cos(Y[i, j]))) + 6)))
+            temps[i, j] = int(
+                max(
+                    0,
+                    min(5, 6 * (1 - abs(Y[i, j] / (np.pi / 2))) - elevation[i, j] / 6),
+                )
+            )
             temp = temps[i, j] / 5.0
             hums[i, j] = int(
                 min(
                     2 + temps[i, j],
-                    max(0, np.log2(statichumidity[i, j] / 100) + 8),
+                    max(0, np.log2(totalhumidity[i, j] / 100) + 8),
                 )
             )
             hum = hums[i, j] / (2 + temps[i, j])
