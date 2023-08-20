@@ -209,6 +209,15 @@ for j in range(6):
 
 # %%
 
+np.save(
+    "world/wind.npy",
+    np.concatenate([TotVelX[:, :, np.newaxis], TotVelY[:, :, np.newaxis]], axis=2),
+)
+
+np.save("world/humidity.npy", totalhumidity)
+
+# %%
+
 # x = np.linspace(0, 1, 128).reshape((-1, 1))
 # world1 = (1 - x) * np.array([[30.0 / 256, 33.0 / 256, 117.0 / 256, 1]]) + x * np.array(
 #     [[52.0 / 256, 205.0 / 256, 235.0 / 256, 1]]
