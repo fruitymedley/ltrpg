@@ -43,16 +43,32 @@ VelX = (
     * signal.square(Y * cellsPerHemisphere, 0.5)
     * np.cos(Y * cellsPerHemisphere)
 )
-VelY = -maxWind * np.sin(2 * Y * cellsPerHemisphere)
+VelY = -0.2 * maxWind * np.sin(2 * Y * cellsPerHemisphere)
 
 Humidity = np.square(np.cos(Y * cellsPerHemisphere))
 
-dhdx = (np.roll(elevation, -1, axis=0) - np.roll(elevation, 1, axis=0)) / 2
-dhdy = np.concatenate(
-    (np.maximum(elevation, 0)[:, 1:], np.maximum(elevation, 0)[:, -1:]), axis=1
-) - np.concatenate(
-    (np.maximum(elevation, 0)[:, :1], np.maximum(elevation, 0)[:, :-1]), axis=1
+
+# %%
+
+surface = np.maximum(0, elevation)
+
+dhdx = (np.roll(surface, -1, axis=0) - np.roll(surface, 1, axis=0)) / 2
+dhdy = np.concatenate((surface[:, 1:], surface[:, -1:]), axis=1) - np.concatenate(
+    (surface[:, :1], surface[:, :-1]), axis=1
 )
+
+DelVelX = -dhdy * np.sin(Y) / np.sqrt(1 + np.square(dhdx) + np.square(dhdy))
+DelVelY = dhdx * np.sin(Y) / np.sqrt(1 + np.square(dhdx) + np.square(dhdy))
+
+TotVelX = (VelX + 2 * surface / 6 * DelVelX) / (1 + surface / 6)
+TotVelY = (VelY + 2 * surface / 6 * DelVelY) / (1 + surface / 6)
+
+plt.pcolormesh(longitudes, latitudes, surface.transpose())
+plt.streamplot(
+    longitudes, latitudes, TotVelX.transpose(), TotVelY.transpose(), density=2
+)
+
+# %%
 
 
 def treck(x, y):
@@ -96,6 +112,8 @@ dynamicHumidity = np.vectorize(treck)(X, Y).astype(float)
 dynamicHumidity *= 100.0 / dynamicHumidity.max()
 print("Done")
 
+# %%
+
 
 filterSize = 200
 variance = 1000
@@ -116,7 +134,7 @@ filter = (
         )
     )
 )
-water = (elevation < 0).astype(int) * np.square(np.cos(Y))
+water = (elevation < 0).astype(int) * np.square(np.cos(Y)) * Humidity
 wrap = np.concatenate((water[-filterSize:], water, water[:filterSize]), axis=0)
 wrap = np.concatenate(
     (
@@ -126,20 +144,24 @@ wrap = np.concatenate(
     ),
     axis=1,
 )
-statichumidity = (elevation >= 0).astype(int) * signal.convolve2d(filter, wrap, "valid")
-statichumidity = (100 - 100.0 / 2**8) / (
-    statichumidity.max() - statichumidity.min()
-) * (statichumidity - statichumidity.min()) + 100.0 / 2**8
+# staticHumidity = (elevation >= 0).astype(int) * signal.convolve2d(filter, wrap, "valid")
+staticHumidity = (elevation >= 0).astype(int) * signal.fftconvolve(
+    wrap, filter, mode="valid"
+)
+lands = staticHumidity[(elevation >= 0)]
+staticHumidity = (100 - 100.0 / 2**8) / (lands.max() - lands.min()) * (
+    staticHumidity - lands.min()
+) + 100.0 / 2**8
 plt.pcolormesh(
     X.transpose(),
     Y.transpose(),
-    (elevation.transpose() >= 0).astype(int) * statichumidity.transpose(),
+    (elevation.transpose() >= 0).astype(int) * staticHumidity.transpose(),
 )
 
 # %%
 
-ratio = 0.8
-totalhumidity = ratio * dynamicHumidity + (1 - ratio) * statichumidity
+ratio = 0.5
+totalhumidity = ratio * dynamicHumidity + (1 - ratio) * staticHumidity
 
 biome = np.zeros((Xsize, Ysize, 3))
 temps = np.zeros((Xsize, Ysize))
