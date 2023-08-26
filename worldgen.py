@@ -165,5 +165,5 @@ plt.contour(
 
 # %%
 
-np.save("world/elevation.npy", elevation.real)
-np.save("world/ocean.npy", ocean)
+np.save("world/elevation.npy", elevation.real.transpose())
+np.save("world/ocean.npy", ocean.transpose())
