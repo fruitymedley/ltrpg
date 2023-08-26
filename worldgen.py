@@ -3,20 +3,28 @@
 import numpy as np
 from numpy import random
 import scipy.fftpack as sfft
+from scipy import stats
 import matplotlib.pyplot as plt
 from matplotlib import colors
 import pandas as pd
+import sys
+
+sys.setrecursionlimit(1000000)
 
 # %%
 
 x = np.linspace(0, 1, 128).reshape((-1, 1))
-world1 = (1 - x) * np.array([[30.0 / 256, 33.0 / 256, 117.0 / 256, 1]]) + x * np.array(
-    [[52.0 / 256, 205.0 / 256, 235.0 / 256, 1]]
+earth1 = (1 - x) * np.array([[20.0 / 256, 13.0 / 256, 0.0 / 256, 1]]) + x * np.array(
+    [[70.0 / 256, 235.0 / 256, 52.0 / 256, 1]]
 )
-world2 = (1 - x) * np.array([[70.0 / 256, 235.0 / 256, 52.0 / 256, 1]]) + x * np.array(
+earth2 = (1 - x) * np.array([[70.0 / 256, 235.0 / 256, 52.0 / 256, 1]]) + x * np.array(
     [[235.0 / 256, 52.0 / 256, 52.0 / 256, 1]]
 )
-world = colors.LinearSegmentedColormap.from_list("world", np.vstack((world1, world2)))
+water1 = (1 - x) * np.array([[30.0 / 256, 33.0 / 256, 117.0 / 256, 1]]) + x * np.array(
+    [[52.0 / 256, 205.0 / 256, 235.0 / 256, 1]]
+)
+earth = colors.LinearSegmentedColormap.from_list("earth", np.vstack((earth1, earth2)))
+water = colors.LinearSegmentedColormap.from_list("water", np.vstack((water1)))
 
 # %%
 
@@ -104,12 +112,51 @@ elevation *= 6.5
 
 # %%
 
-plt.pcolor(
+ocean = np.full(elevation.shape, -1)
+
+
+def flood(i, j, o):
+    ocean[j, i] = o
+
+    # North
+    if j + 1 < size and elevation[j + 1, i].real < 0 and ocean[j + 1, i] == -1:
+        flood(i, j + 1, o)
+
+    # South
+    if j > 0 and elevation[j - 1, i].real < 0 and ocean[j - 1, i] == -1:
+        flood(i, j - 1, o)
+
+    # East
+    if elevation[j, (i + 1) % size].real < 0 and ocean[j, (i + 1) % size] == -1:
+        flood((i + 1) % size, j, o)
+
+    # West
+    if (
+        elevation[j, (size + i - 1) % size].real < 0
+        and ocean[j, (size + i - 1) % size] == -1
+    ):
+        flood((size + i - 1) % size, j, o)
+
+
+for i in range(size):
+    for j in range(size):
+        if elevation[j, i].real < -1 and ocean[j, i] == -1:
+            flood(i, j, np.max(ocean) + 1)
+
+ocean = (ocean >= 0).astype(int)
+
+# %%
+
+plt.pcolormesh(
     elevation.real,
-    cmap=world,
+    cmap=earth,
 )
 cbar = plt.colorbar()
 plt.clim(-6.5, 6.5)
+
+plt.pcolormesh(np.where(ocean, elevation.real, np.nan), cmap=water)
+cbar = plt.colorbar()
+plt.clim(-6.5, 0)
 
 plt.contour(
     elevation.real, levels=np.linspace(-6.5, 6.5, 11), colors="black", linewidths=0.1
@@ -118,5 +165,5 @@ plt.contour(
 
 # %%
 
-df = pd.DataFrame(elevation.real)
-df.to_csv("world1.csv")
+np.save("world/elevation.npy", elevation.real)
+np.save("world/ocean.npy", ocean)
